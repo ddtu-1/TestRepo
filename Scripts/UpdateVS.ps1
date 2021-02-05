@@ -52,14 +52,22 @@ $log = $startTime.ToString("yyyy-MM-ddTHH:mm:ss") + " Started upgrading via VSIn
 $log += "InstallChannelUri - $InstallChannelUri"
 Set-Content -Path $UpdateVSLogFile -Force -Value $log
 
+# start updating the server via VSInstanceManager tool
 $vsInstanceManagerPath = "C:\vsonline\vsoagent\bin\VSInstanceManager.exe"
 $installProcess = Start-Process $vsInstanceManagerPath -ArgumentList "update --installChannelUri `"$InstallChannelUri`"" -PassThru
-$installProcess.WaitForExit()
-$exitCode = $installProcess.ExitCode
+$timeout = 10*60*1000
+$isExit = $installProcess.WaitForExit($timeout)
 
 $endTime = Get-Date
 $duration = ($endTime - $startTime).TotalMinutes
-$log = $endTime.ToString("yyyy-MM-ddTHH:mm:ss") + " Completed after $duration minutes."
+if ($isExit -eq $true) {
+  $log = $endTime.ToString("yyyy-MM-ddTHH:mm:ss") + " VSInstanceManager completed update after $duration minutes."
+}
+else {
+  $log = $endTime.ToString("yyyy-MM-ddTHH:mm:ss") + " VSInstanceManager did not finish within timeout of $timeout milliseconds"
+}
+
+$exitCode = $installProcess.ExitCode
 Add-Content -Path $UpdateVSLogFile -Force -Value $log
 Set-Content -Path $ResultFile -Force -Value $exitCode
 
